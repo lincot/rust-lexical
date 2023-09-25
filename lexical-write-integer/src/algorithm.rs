@@ -74,37 +74,38 @@ unsafe fn write_digits<T: UnsignedInteger>(
 ) -> usize {
     debug_assert_radix(radix);
 
-    // Pre-compute our powers of radix.
-    let radix = T::from_u32(radix);
-    let radix2 = radix * radix;
-    let radix4 = radix2 * radix2;
-
     // SAFETY: All of these are safe for the buffer writes as long as
     // the buffer is large enough to hold `T::MAX` digits in radix `N`.
 
-    // Decode 4 digits at a time.
-    while value >= radix4 {
-        let r = value % radix4;
-        value /= radix4;
-        let r1 = usize::as_cast(T::TWO * (r / radix2));
-        let r2 = usize::as_cast(T::TWO * (r % radix2));
+    // Use the powers of radix if they don't overflow.
+    let radix = T::from_u32(radix);
+    if let Some(radix2) = radix.checked_mul(radix) {
+        if let Some(radix4) = radix2.checked_mul(radix2) {
+            // Decode 4 digits at a time.
+            while value >= radix4 {
+                let r = value % radix4;
+                value /= radix4;
+                let r1 = 2 * usize::as_cast(r / radix2);
+                let r2 = 2 * usize::as_cast(r % radix2);
 
-        // SAFETY: This is always safe, since the table is 2*radix^2, and
-        // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
-        // value of r is `radix4-1`, which must have a div and r
-        // in the range [0, radix^2-1).
-        write_digits!(buffer, index, table, r2);
-        write_digits!(buffer, index, table, r1);
-    }
+                // SAFETY: This is always safe, since the table is 2*radix^2, and
+                // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
+                // value of r is `radix4-1`, which must have a div and r
+                // in the range [0, radix^2-1).
+                write_digits!(buffer, index, table, r2);
+                write_digits!(buffer, index, table, r1);
+            }
+        }
 
-    // Decode 2 digits at a time.
-    while value >= radix2 {
-        let r = usize::as_cast(T::TWO * (value % radix2));
-        value /= radix2;
+        // Decode 2 digits at a time.
+        while value >= radix2 {
+            let r = 2 * usize::as_cast(value % radix2);
+            value /= radix2;
 
-        // SAFETY: this is always safe, since the table is 2*radix^2, and
-        // r must be in the range [0, 2*radix^2-1).
-        write_digits!(buffer, index, table, r);
+            // SAFETY: this is always safe, since the table is 2*radix^2, and
+            // r must be in the range [0, 2*radix^2-1).
+            write_digits!(buffer, index, table, r);
+        }
     }
 
     // Decode last 2 digits.
@@ -113,7 +114,7 @@ unsafe fn write_digits<T: UnsignedInteger>(
         let r = u32::as_cast(value);
         write_digit!(buffer, index, r);
     } else {
-        let r = usize::as_cast(T::TWO * value);
+        let r = 2 * usize::as_cast(value);
         // SAFETY: this is always safe, since the table is 2*radix^2, and
         // the value must <= radix^2, so rem must be in the range
         // [0, 2*radix^2-1).
@@ -164,8 +165,6 @@ pub unsafe fn algorithm<T>(value: T, radix: u32, table: &[u8], buffer: &mut [u8]
 where
     T: UnsignedInteger,
 {
-    // This is so that radix^4 does not overflow, since 36^4 overflows a u16.
-    debug_assert!(T::BITS >= 32, "Must have at least 32 bits in the input.");
     debug_assert_radix(radix);
 
     // SAFETY: Both forms of unchecked indexing cannot overflow.

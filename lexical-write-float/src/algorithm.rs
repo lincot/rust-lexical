@@ -790,7 +790,7 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
 #[inline]
 pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
     debug_assert!(bytes.len() >= 10);
-    unsafe { mantissa.write_mantissa::<u32, { STANDARD }>(bytes) }
+    unsafe { mantissa.write_mantissa::<{ STANDARD }>(bytes) }
 }
 
 /// Write the significant digits, when the significant digits cannot fit in a
@@ -805,7 +805,7 @@ pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
 #[allow(clippy::branches_sharing_code)]
 pub unsafe fn write_digits_u64(bytes: &mut [u8], mantissa: u64) -> usize {
     debug_assert!(bytes.len() >= 20);
-    unsafe { mantissa.write_mantissa::<u64, { STANDARD }>(bytes) }
+    unsafe { mantissa.write_mantissa::<{ STANDARD }>(bytes) }
 }
 
 // EXTENDED

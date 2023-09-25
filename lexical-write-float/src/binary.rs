@@ -138,7 +138,7 @@ where
 
     // SAFETY: safe since the buffer must be larger than `M::FORMATTED_SIZE`.
     let digit_count = unsafe {
-        let count = value.write_mantissa::<M, FORMAT>(&mut index_unchecked_mut!(bytes[1..]));
+        let count = value.write_mantissa::<FORMAT>(&mut index_unchecked_mut!(bytes[1..]));
         index_unchecked_mut!(bytes[0] = bytes[1]);
         index_unchecked_mut!(bytes[1]) = decimal_point;
         let zeros = rtrim_char_count(&index_unchecked!(bytes[2..count + 1]), b'0');
@@ -241,7 +241,7 @@ where
 
     // SAFETY: both are safe, if the buffer is large enough to hold the significant digits.
     let digit_count = unsafe {
-        let count = value.write_mantissa::<M, FORMAT>(&mut index_unchecked_mut!(bytes[cursor..]));
+        let count = value.write_mantissa::<FORMAT>(&mut index_unchecked_mut!(bytes[cursor..]));
         let zeros = rtrim_char_count(&index_unchecked!(bytes[cursor..cursor + count]), b'0');
         count - zeros
     };
@@ -298,7 +298,7 @@ where
 
     // SAFETY: safe since the buffer must be larger than `M::FORMATTED_SIZE`.
     let mut digit_count = unsafe {
-        let count = value.write_mantissa::<M, FORMAT>(bytes);
+        let count = value.write_mantissa::<FORMAT>(bytes);
         let zeros = rtrim_char_count(&index_unchecked!(bytes[..count]), b'0');
         count - zeros
     };

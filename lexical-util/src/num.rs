@@ -538,15 +538,33 @@ integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 // --------------
 
 /// Defines a trait that supports signed integral operations.
-pub trait SignedInteger: Integer + ops::Neg<Output = Self> {}
+pub trait SignedInteger: Integer + ops::Neg<Output = Self> {
+    type Unsigned: UnsignedInteger;
+
+    fn unsigned_abs(self) -> Self::Unsigned;
+}
 
 macro_rules! signed_integer_impl {
-    ($($t:tt)*) => ($(
-        impl SignedInteger for $t {}
+    ($($t:tt $ut:tt ;)*) => ($(
+        impl SignedInteger for $t {
+            type Unsigned = $ut;
+
+            #[inline]
+            fn unsigned_abs(self) -> $ut {
+                self.unsigned_abs()
+            }
+        }
     )*)
 }
 
-signed_integer_impl! { i8 i16 i32 i64 i128 isize }
+signed_integer_impl! {
+    i8 u8 ;
+    i16 u16 ;
+    i32 u32 ;
+    i64 u64 ;
+    i128 u128 ;
+    isize usize ;
+}
 
 // UNSIGNED INTEGER
 // ----------------

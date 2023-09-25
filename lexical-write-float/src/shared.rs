@@ -164,7 +164,7 @@ pub unsafe fn write_exponent<const FORMAT: u128>(
         index_unchecked_mut!(bytes[*cursor]) = exponent_character;
         *cursor += 1;
         let positive_exp = write_exponent_sign::<FORMAT>(bytes, cursor, exp);
-        positive_exp.write_exponent::<u32, FORMAT>(&mut index_unchecked_mut!(bytes[*cursor..]))
+        positive_exp.write_exponent::<FORMAT>(&mut index_unchecked_mut!(bytes[*cursor..]))
     };
 }
 

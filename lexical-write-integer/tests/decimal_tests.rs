@@ -31,6 +31,36 @@ fn fast_log10_test() {
 }
 
 #[test]
+fn u8_digit_count_test() {
+    assert_eq!(u8::digit_count(0), 1);
+    assert_eq!(u8::digit_count(1), 1);
+    assert_eq!(u8::digit_count(9), 1);
+    assert_eq!(u8::digit_count(10), 2);
+    assert_eq!(u8::digit_count(11), 2);
+
+    assert_eq!(u8::digit_count(99), 2);
+    assert_eq!(u8::digit_count(100), 3);
+    assert_eq!(u8::digit_count(101), 3);
+
+    assert_eq!(u8::digit_count(u8::MAX), 3);
+}
+
+#[test]
+fn u16_digit_count_test() {
+    assert_eq!(u16::digit_count(0), 1);
+    assert_eq!(u16::digit_count(1), 1);
+    assert_eq!(u16::digit_count(9), 1);
+    assert_eq!(u16::digit_count(10), 2);
+    assert_eq!(u16::digit_count(11), 2);
+
+    assert_eq!(u16::digit_count((1 << 8) - 1), 3);
+    assert_eq!(u16::digit_count(1 << 8), 3);
+    assert_eq!(u16::digit_count((1 << 8) + 1), 3);
+
+    assert_eq!(u16::digit_count(u16::MAX), 5);
+}
+
+#[test]
 fn u32_digit_count_test() {
     assert_eq!(u32::digit_count(0), 1);
     assert_eq!(u32::digit_count(1), 1);
@@ -64,6 +94,57 @@ fn u64_digit_count_test() {
 #[test]
 fn u128_digit_count_test() {
     assert_eq!(u128::digit_count(u128::MAX), 39);
+}
+
+#[test]
+fn u8toa_test() {
+    let mut buffer = [b'\x00'; 16];
+    unsafe {
+        assert_eq!(5u8.decimal(&mut buffer), 1);
+        assert_eq!(&buffer[..1], b"5");
+
+        assert_eq!(11u8.decimal(&mut buffer), 2);
+        assert_eq!(&buffer[..2], b"11");
+
+        assert_eq!(99u8.decimal(&mut buffer), 2);
+        assert_eq!(&buffer[..2], b"99");
+
+        assert_eq!(101u8.decimal(&mut buffer), 3);
+        assert_eq!(&buffer[..3], b"101");
+    }
+}
+
+#[test]
+fn u16toa_test() {
+    let mut buffer = [b'\x00'; 16];
+    unsafe {
+        assert_eq!(5u16.decimal(&mut buffer), 1);
+        assert_eq!(&buffer[..1], b"5");
+
+        assert_eq!(11u16.decimal(&mut buffer), 2);
+        assert_eq!(&buffer[..2], b"11");
+
+        assert_eq!(99u16.decimal(&mut buffer), 2);
+        assert_eq!(&buffer[..2], b"99");
+
+        assert_eq!(101u16.decimal(&mut buffer), 3);
+        assert_eq!(&buffer[..3], b"101");
+
+        assert_eq!(999u16.decimal(&mut buffer), 3);
+        assert_eq!(&buffer[..3], b"999");
+
+        assert_eq!(1001u16.decimal(&mut buffer), 4);
+        assert_eq!(&buffer[..4], b"1001");
+
+        assert_eq!(9999u16.decimal(&mut buffer), 4);
+        assert_eq!(&buffer[..4], b"9999");
+
+        assert_eq!(10001u16.decimal(&mut buffer), 5);
+        assert_eq!(&buffer[..5], b"10001");
+
+        assert_eq!(65535u16.decimal(&mut buffer), 5);
+        assert_eq!(&buffer[..5], b"65535");
+    }
 }
 
 #[test]
@@ -405,12 +486,15 @@ fn u128toa_test() {
     }
 }
 
-fn slow_log2(x: u32) -> usize {
+fn slow_log2<T: UnsignedInteger>(x: T) -> usize
+where
+    f64: From<T>,
+{
     // Slow approach to calculating a log2, using floats.
-    if x == 0 {
+    if x == T::ZERO {
         0
     } else {
-        (x as f64).log2().floor() as usize
+        f64::from(x).log2().floor() as usize
     }
 }
 
@@ -420,7 +504,27 @@ fn slow_digit_count<T: UnsignedInteger>(x: T) -> usize {
 
 quickcheck! {
     #[cfg_attr(miri, ignore)]
-    fn fast_log2_quickcheck(x: u32) -> bool {
+    fn u8_fast_log2_quickcheck(x: u8) -> bool {
+        slow_log2(x) == decimal::fast_log2(x)
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn u8_digit_count_quickcheck(x: u8) -> bool {
+        slow_digit_count(x) == x.digit_count()
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn u16_fast_log2_quickcheck(x: u16) -> bool {
+        slow_log2(x) == decimal::fast_log2(x)
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn u16_digit_count_quickcheck(x: u16) -> bool {
+        slow_digit_count(x) == x.digit_count()
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn u32_fast_log2_quickcheck(x: u32) -> bool {
         slow_log2(x) == decimal::fast_log2(x)
     }
 

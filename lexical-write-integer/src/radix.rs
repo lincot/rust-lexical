@@ -31,21 +31,6 @@ pub trait Radix: UnsignedInteger {
     ) -> usize;
 }
 
-// Don't implement radix for small types, where we could have an overflow.
-macro_rules! radix_unimpl {
-    ($($t:ty)*) => ($(
-        impl Radix for $t {
-            #[inline(always)]
-            unsafe fn radix<const __: u128, const ___: u128, const ____: i32>(self, _: &mut [u8]) -> usize {
-                // Forces a hard error if we have a logic error in our code.
-                unimplemented!()
-            }
-        }
-    )*);
-}
-
-radix_unimpl! { u8 u16 usize }
-
 // Implement radix for type.
 macro_rules! radix_impl {
     ($($t:ty)*) => ($(
@@ -71,7 +56,7 @@ macro_rules! radix_impl {
     )*);
 }
 
-radix_impl! { u32 u64 }
+radix_impl! { u8 u16 u32 u64 usize }
 
 impl Radix for u128 {
     #[inline(always)]

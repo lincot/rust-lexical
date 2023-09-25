@@ -16,7 +16,7 @@ fn u128toa_test() {
     let mut buffer = [b'\x00'; 128];
     unsafe {
         let value = 136551478823710021067381144334863695872u128;
-        let count = value.write_mantissa::<u128, FORMAT>(&mut buffer);
+        let count = value.write_mantissa::<FORMAT>(&mut buffer);
         let y = u128::from_str_radix(from_utf8_unchecked(&buffer[..count]), 12);
         assert_eq!(y, Ok(value));
     }
@@ -26,7 +26,7 @@ fn u128toa_test() {
 fn write_integer<T: WriteInteger, const FORMAT: u128>(x: T, actual: &[u8]) {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     unsafe {
-        let count = x.write_mantissa::<T, FORMAT>(&mut buffer);
+        let count = x.write_mantissa::<FORMAT>(&mut buffer);
         assert_eq!(actual.len(), count);
         assert_eq!(actual, &buffer[..count])
     }
@@ -93,52 +93,74 @@ fn radix_test() {
 // We need to trick the algorithm into thinking we're using a const.
 // Useful for proptests, useless everywhere else.
 macro_rules! to_radix {
-    ($t:ident, $x:ident, $radix:ident, $buffer:ident) => {
+    ($x:ident, $radix:ident, $buffer:ident) => {
         match $radix {
-            2 => $x.write_mantissa::<$t, { from_radix(2) }>(&mut $buffer),
-            3 => $x.write_mantissa::<$t, { from_radix(3) }>(&mut $buffer),
-            4 => $x.write_mantissa::<$t, { from_radix(4) }>(&mut $buffer),
-            5 => $x.write_mantissa::<$t, { from_radix(5) }>(&mut $buffer),
-            6 => $x.write_mantissa::<$t, { from_radix(6) }>(&mut $buffer),
-            7 => $x.write_mantissa::<$t, { from_radix(7) }>(&mut $buffer),
-            8 => $x.write_mantissa::<$t, { from_radix(8) }>(&mut $buffer),
-            9 => $x.write_mantissa::<$t, { from_radix(9) }>(&mut $buffer),
-            10 => $x.write_mantissa::<$t, { from_radix(10) }>(&mut $buffer),
-            11 => $x.write_mantissa::<$t, { from_radix(11) }>(&mut $buffer),
-            12 => $x.write_mantissa::<$t, { from_radix(12) }>(&mut $buffer),
-            13 => $x.write_mantissa::<$t, { from_radix(13) }>(&mut $buffer),
-            14 => $x.write_mantissa::<$t, { from_radix(14) }>(&mut $buffer),
-            15 => $x.write_mantissa::<$t, { from_radix(15) }>(&mut $buffer),
-            16 => $x.write_mantissa::<$t, { from_radix(16) }>(&mut $buffer),
-            17 => $x.write_mantissa::<$t, { from_radix(17) }>(&mut $buffer),
-            18 => $x.write_mantissa::<$t, { from_radix(18) }>(&mut $buffer),
-            19 => $x.write_mantissa::<$t, { from_radix(19) }>(&mut $buffer),
-            20 => $x.write_mantissa::<$t, { from_radix(20) }>(&mut $buffer),
-            21 => $x.write_mantissa::<$t, { from_radix(21) }>(&mut $buffer),
-            22 => $x.write_mantissa::<$t, { from_radix(22) }>(&mut $buffer),
-            23 => $x.write_mantissa::<$t, { from_radix(23) }>(&mut $buffer),
-            24 => $x.write_mantissa::<$t, { from_radix(24) }>(&mut $buffer),
-            25 => $x.write_mantissa::<$t, { from_radix(25) }>(&mut $buffer),
-            26 => $x.write_mantissa::<$t, { from_radix(26) }>(&mut $buffer),
-            27 => $x.write_mantissa::<$t, { from_radix(27) }>(&mut $buffer),
-            28 => $x.write_mantissa::<$t, { from_radix(28) }>(&mut $buffer),
-            29 => $x.write_mantissa::<$t, { from_radix(29) }>(&mut $buffer),
-            30 => $x.write_mantissa::<$t, { from_radix(30) }>(&mut $buffer),
-            31 => $x.write_mantissa::<$t, { from_radix(31) }>(&mut $buffer),
-            32 => $x.write_mantissa::<$t, { from_radix(32) }>(&mut $buffer),
-            33 => $x.write_mantissa::<$t, { from_radix(33) }>(&mut $buffer),
-            34 => $x.write_mantissa::<$t, { from_radix(34) }>(&mut $buffer),
-            35 => $x.write_mantissa::<$t, { from_radix(35) }>(&mut $buffer),
-            36 => $x.write_mantissa::<$t, { from_radix(36) }>(&mut $buffer),
+            2 => $x.write_mantissa::<{ from_radix(2) }>(&mut $buffer),
+            3 => $x.write_mantissa::<{ from_radix(3) }>(&mut $buffer),
+            4 => $x.write_mantissa::<{ from_radix(4) }>(&mut $buffer),
+            5 => $x.write_mantissa::<{ from_radix(5) }>(&mut $buffer),
+            6 => $x.write_mantissa::<{ from_radix(6) }>(&mut $buffer),
+            7 => $x.write_mantissa::<{ from_radix(7) }>(&mut $buffer),
+            8 => $x.write_mantissa::<{ from_radix(8) }>(&mut $buffer),
+            9 => $x.write_mantissa::<{ from_radix(9) }>(&mut $buffer),
+            10 => $x.write_mantissa::<{ from_radix(10) }>(&mut $buffer),
+            11 => $x.write_mantissa::<{ from_radix(11) }>(&mut $buffer),
+            12 => $x.write_mantissa::<{ from_radix(12) }>(&mut $buffer),
+            13 => $x.write_mantissa::<{ from_radix(13) }>(&mut $buffer),
+            14 => $x.write_mantissa::<{ from_radix(14) }>(&mut $buffer),
+            15 => $x.write_mantissa::<{ from_radix(15) }>(&mut $buffer),
+            16 => $x.write_mantissa::<{ from_radix(16) }>(&mut $buffer),
+            17 => $x.write_mantissa::<{ from_radix(17) }>(&mut $buffer),
+            18 => $x.write_mantissa::<{ from_radix(18) }>(&mut $buffer),
+            19 => $x.write_mantissa::<{ from_radix(19) }>(&mut $buffer),
+            20 => $x.write_mantissa::<{ from_radix(20) }>(&mut $buffer),
+            21 => $x.write_mantissa::<{ from_radix(21) }>(&mut $buffer),
+            22 => $x.write_mantissa::<{ from_radix(22) }>(&mut $buffer),
+            23 => $x.write_mantissa::<{ from_radix(23) }>(&mut $buffer),
+            24 => $x.write_mantissa::<{ from_radix(24) }>(&mut $buffer),
+            25 => $x.write_mantissa::<{ from_radix(25) }>(&mut $buffer),
+            26 => $x.write_mantissa::<{ from_radix(26) }>(&mut $buffer),
+            27 => $x.write_mantissa::<{ from_radix(27) }>(&mut $buffer),
+            28 => $x.write_mantissa::<{ from_radix(28) }>(&mut $buffer),
+            29 => $x.write_mantissa::<{ from_radix(29) }>(&mut $buffer),
+            30 => $x.write_mantissa::<{ from_radix(30) }>(&mut $buffer),
+            31 => $x.write_mantissa::<{ from_radix(31) }>(&mut $buffer),
+            32 => $x.write_mantissa::<{ from_radix(32) }>(&mut $buffer),
+            33 => $x.write_mantissa::<{ from_radix(33) }>(&mut $buffer),
+            34 => $x.write_mantissa::<{ from_radix(34) }>(&mut $buffer),
+            35 => $x.write_mantissa::<{ from_radix(35) }>(&mut $buffer),
+            36 => $x.write_mantissa::<{ from_radix(36) }>(&mut $buffer),
             _ => unimplemented!(),
         }
     };
 }
 
+fn u8toa_mockup(x: u8, radix: u32) -> Result<(), TestCaseError> {
+    let mut buffer = [b'\x00'; 8];
+    unsafe {
+        let count = to_radix!(x, radix, buffer);
+        let y = u8::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
+        prop_assert_eq!(y, Ok(x));
+    }
+
+    Ok(())
+}
+
+fn u16toa_mockup(x: u16, radix: u32) -> Result<(), TestCaseError> {
+    let mut buffer = [b'\x00'; 16];
+    unsafe {
+        let count = to_radix!(x, radix, buffer);
+        let y = u16::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
+        prop_assert_eq!(y, Ok(x));
+    }
+
+    Ok(())
+}
+
 fn u32toa_mockup(x: u32, radix: u32) -> Result<(), TestCaseError> {
     let mut buffer = [b'\x00'; 32];
     unsafe {
-        let count = to_radix!(u32, x, radix, buffer);
+        let count = to_radix!(x, radix, buffer);
         let y = u32::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
         prop_assert_eq!(y, Ok(x));
     }
@@ -149,7 +171,7 @@ fn u32toa_mockup(x: u32, radix: u32) -> Result<(), TestCaseError> {
 fn u64toa_mockup(x: u64, radix: u32) -> Result<(), TestCaseError> {
     let mut buffer = [b'\x00'; 64];
     unsafe {
-        let count = to_radix!(u64, x, radix, buffer);
+        let count = to_radix!(x, radix, buffer);
         let y = u64::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
         prop_assert_eq!(y, Ok(x));
     }
@@ -160,7 +182,7 @@ fn u64toa_mockup(x: u64, radix: u32) -> Result<(), TestCaseError> {
 fn u128toa_mockup(x: u128, radix: u32) -> Result<(), TestCaseError> {
     let mut buffer = [b'\x00'; 128];
     unsafe {
-        let count = to_radix!(u128, x, radix, buffer);
+        let count = to_radix!(x, radix, buffer);
         let y = u128::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
         prop_assert_eq!(y, Ok(x));
     }
@@ -169,6 +191,36 @@ fn u128toa_mockup(x: u128, radix: u32) -> Result<(), TestCaseError> {
 }
 
 proptest! {
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    #[cfg(feature = "radix")]
+    fn u8toa_proptest(x: u8, radix in 2u32..=36) {
+        u8toa_mockup(x, radix)?;
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    #[cfg(not(feature = "radix"))]
+    fn u8toa_proptest(x: u8, power in 1u32..=5) {
+        let radix = 2u32.pow(power);
+        u8toa_mockup(x, radix)?;
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    #[cfg(feature = "radix")]
+    fn u16toa_proptest(x: u16, radix in 2u32..=36) {
+        u16toa_mockup(x, radix)?;
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    #[cfg(not(feature = "radix"))]
+    fn u16toa_proptest(x: u16, power in 1u32..=5) {
+        let radix = 2u32.pow(power);
+        u16toa_mockup(x, radix)?;
+    }
+
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]

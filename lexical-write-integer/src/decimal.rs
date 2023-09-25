@@ -16,7 +16,7 @@
 use crate::algorithm::{algorithm, algorithm_u128};
 use crate::table::DIGIT_TO_BASE10_SQUARED;
 use lexical_util::format::{RADIX, RADIX_SHIFT, STANDARD};
-use lexical_util::num::UnsignedInteger;
+use lexical_util::num::{as_cast, AsCast, UnsignedInteger};
 
 /// Fast integral log2.
 ///
@@ -130,25 +130,21 @@ pub trait DigitCount: UnsignedInteger {
     fn digit_count(self) -> usize;
 }
 
-macro_rules! digit_count_unimpl {
+macro_rules! digit_count_impl {
     ($($t:ty)*) => ($(
         impl DigitCount for $t {
             #[inline]
             fn digit_count(self) -> usize {
-                unimplemented!()
+                fast_digit_count(as_cast(self))
             }
         }
     )*)
 }
 
-digit_count_unimpl! { u8 u16 usize }
+digit_count_impl! { u8 u16 u32 }
 
-impl DigitCount for u32 {
-    #[inline]
-    fn digit_count(self) -> usize {
-        fast_digit_count(self)
-    }
-}
+#[cfg(any(target_pointer_width = "16", target_pointer_width = "32"))]
+digit_count_impl! { usize }
 
 impl DigitCount for u64 {
     #[inline]
@@ -175,6 +171,14 @@ impl DigitCount for u64 {
             10000000000000000000,
         ];
         fallback_digit_count(self, &TABLE)
+    }
+}
+
+#[cfg(target_pointer_width = "64")]
+impl DigitCount for usize {
+    #[inline]
+    fn digit_count(self) -> usize {
+        u64::as_cast(self).digit_count()
     }
 }
 
@@ -237,21 +241,6 @@ pub trait Decimal: DigitCount {
     unsafe fn decimal(self, buffer: &mut [u8]) -> usize;
 }
 
-// Don't implement decimal for small types, where we could have an overflow.
-macro_rules! decimal_unimpl {
-    ($($t:ty)*) => ($(
-        impl Decimal for $t {
-            #[inline(always)]
-            unsafe fn decimal(self, _: &mut [u8]) -> usize {
-                // Forces a hard error if we have a logic error in our code.
-                unimplemented!()
-            }
-        }
-    )*);
-}
-
-decimal_unimpl! { u8 u16 usize }
-
 // Implement decimal for type.
 macro_rules! decimal_impl {
     ($($t:ty)*) => ($(
@@ -270,7 +259,7 @@ macro_rules! decimal_impl {
     )*);
 }
 
-decimal_impl! { u32 u64 }
+decimal_impl! { u8 u16 u32 u64 usize }
 
 impl Decimal for u128 {
     #[inline(always)]
